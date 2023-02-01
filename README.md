@@ -1,7 +1,7 @@
 # namaz_timing
 
 A new Flutter project.
-
+SDK 3.7.0
 ## Getting Started
 
 This project is a starting point for a Flutter application.
