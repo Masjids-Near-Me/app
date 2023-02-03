@@ -1,21 +1,29 @@
-
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animator/flutter_animator.dart';
+import 'package:get/route_manager.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:namaz_timing/constants.dart';
+import 'package:namaz_timing/multiselect/home.dart';
 import 'package:namaz_timing/namaz_timing.dart';
 import 'package:namaz_timing/responsive.dart';
+import 'package:namaz_timing/services.dart';
 import 'package:namaz_timing/update.dart';
 import 'package:new_version/new_version.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time/time.dart';
 import 'package:url_launcher/url_launcher_string.dart';
-
+import 'package:get/get.dart' as g;
+import 'package:wonderpush_flutter/wonderpush_flutter.dart';
+import 'cityarea_model.dart';
+import 'multi_level_dropdown.dart';
+import 'multiselect/repository.dart';
 import 'navbar.dart';
 
 class HomePage extends StatefulWidget {
@@ -62,15 +70,102 @@ var _currentMasjidIndex = 0;
 bool loop = true;
 
 class _HomePageState extends State<HomePage> {
+  SharedPreferences? sp;
+  String? city;
+  String? area;
+  Repository repo = Repository();
+  List<String> _states = ["Choose City"];
+  List<String> _lgas = ["Choose Area"];
+  String _selectedState = "Choose City";
+  String _selectedLGA = "Choose Area";
+  List? cities;
+
+  // Future getData() async {
+  //   final response = await http
+  //       .get(Uri.parse('https://api.namaz.co.in/v2/$city/$area/currentnamaz'));
+  //   if (response.statusCode == 200) {
+  //     // If the server did return a 200 OK response,
+  //     // then parse the JSON.
+  //     setState(() {
+  //       _namaz_timing = jsonDecode(response.body);
+  //     });
+  //   } else {
+  //     // If the server did not return a 200 OK response,
+  //     // then throw an exception.
+  //     throw Exception('Failed to load album');
+  //   }
+  // }
+
   Future getData() async {
-    final response =
-        await http.get(Uri.parse('https://api.namaz.co.in/currentnamaz'));
+    final response = await http
+        .get(Uri.parse('https://api.namaz.co.in/v2/$city/$area/currentnamaz'));
+    print(response.body);
+
+    if (response.statusCode != 200) {
+      http
+          .get(Uri.parse(
+              'https://api.telegram.org/bot5917352634:AAGQK_HUfAn9ViRZYpeLQX-H1IngSvkYdgU/sendMessage?chat_id=933725202&text="Error loaing message ${response.statusCode}"'))
+          .then((value) {
+        return showAboutDialog(
+          context: context,
+          children: [
+            Text('Error loading Masjids, Please try again later!'),
+            Container(
+              color: Color(0xFF77B255),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text('Error loading Masjids, Please try again later!'),
+              ),
+            ),
+          ],
+        );
+      });
+    }
 
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
       // then parse the JSON.
+
       setState(() {
         _namaz_timing = jsonDecode(response.body);
+        _showSpiner = false;
+      });
+      var key = _namaz_timing['list'][0]['timing'].keys.toList();
+      for (var namazType in _namaz_timing['list'].toList()) {
+        var now = DateTime.now();
+
+        var time = DateTime.parse(
+            namazType['timing'][key.first.toString()]['jammat_time']);
+        var namazTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          time.hour,
+          time.minute,
+          time.second,
+        );
+        allList.add(namazTime);
+        if (DateTime.now().isBefore(namazTime + 3.minutes) == true) {
+          list.add(namazTime);
+        }
+        // print(list.toString() + 'asduyga');
+      }
+
+      setState(() {
+        _currentMasjid = list.reduce((a, b) =>
+            a.difference(DateTime.now() - 3.minutes).abs() <
+                    b.difference(DateTime.now()).abs()
+                ? a
+                : b);
+        _currentMasjidIndex = allList.indexOf(_currentMasjid);
+      });
+      // print(_currentMasjid.toString() + 'asd');
+      var duration = (_currentMasjid.difference(DateTime.now())) + 3.minutes;
+      // print(duration.toString() + 'asd');
+      Future.delayed(duration, () {
+        setState(() {
+          loop = true;
+        });
       });
     } else {
       // If the server did not return a 200 OK response,
@@ -79,19 +174,44 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  getCityArea() {
+    Services.getCityArea().then((value) {
+      cities = [];
+      List list = value['data'];
+      for (var l in list) {
+        String city = getItem(l);
+        var map = {"state": city, "alias": city, "lgas": l[city]};
+        cities!.add(map);
+      }
+      _states = List.from(_states)..addAll(repo.getStates(cities!));
+      getSP();
+    });
+  }
+
+  getSP() async {
+    sp = await SharedPreferences.getInstance();
+    city = sp!.getString(citySP);
+    area = sp!.getString(areaSP);
+    setState(() {});
+    if (city == null && area == null) {
+      locationDialog(context);
+    } else {
+      getData();
+    }
+    setState(() {});
+  }
+
   @override
   void initState() {
-    // TODO: implement initState
-
+    super.initState();
+    getCityArea();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final newVersion = NewVersion(
-        androidId: 'co.namaz.near.me',
-        iOSId: 'co.namaz.near.me'
-      );
+      final newVersion =
+          NewVersion(androidId: 'co.namaz.near.me', iOSId: 'co.namaz.near.me');
       void checkNewVersion(NewVersion newVersion) async {
         final status = await newVersion.getVersionStatus();
-        if(status != null) {
-          if(status.canUpdate) {
+        if (status != null) {
+          if (status.canUpdate) {
             showDialog(
               context: context,
               builder: (BuildContext context) {
@@ -110,92 +230,14 @@ class _HomePageState extends State<HomePage> {
             //   dialogTitle: 'Update is Available!',
             // );
           }
-        }}
+        }
+      }
 
       Timer(const Duration(milliseconds: 800), () {
         checkNewVersion(newVersion);
       });
 
-      Future getData() async {
-        final response =
-            await http.get(Uri.parse('https://api.namaz.co.in/currentnamaz'));
-
-        if (response.statusCode != 200) {
-          http
-              .get(Uri.parse(
-                  'https://api.telegram.org/bot5917352634:AAGQK_HUfAn9ViRZYpeLQX-H1IngSvkYdgU/sendMessage?chat_id=933725202&text="Error loaing message ${response.statusCode}"'))
-              .then((value) {
-            return showAboutDialog(
-              context: context,
-              children: [
-                Text('Error loading Masjids, Please try again later!'),
-                Container(
-                  color: Color(0xFF77B255),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child:
-                        Text('Error loading Masjids, Please try again later!'),
-                  ),
-                ),
-              ],
-            );
-          });
-        }
-
-        if (response.statusCode == 200) {
-          // If the server did return a 200 OK response,
-          // then parse the JSON.
-
-          setState(() {
-            _namaz_timing = jsonDecode(response.body);
-            _showSpiner = false;
-          });
-          var key = _namaz_timing['list'][0]['timing'].keys.toList();
-          for (var namazType in _namaz_timing['list'].toList()) {
-            var now = DateTime.now();
-
-            var time = DateTime.parse(
-                namazType['timing'][key.first.toString()]['jammat_time']);
-            var namazTime = DateTime(
-              now.year,
-              now.month,
-              now.day,
-              time.hour,
-              time.minute,
-              time.second,
-            );
-            allList.add(namazTime);
-            if (DateTime.now().isBefore(namazTime + 3.minutes) == true) {
-              list.add(namazTime);
-            }
-            // print(list.toString() + 'asduyga');
-          }
-
-          setState(() {
-            _currentMasjid = list.reduce((a, b) =>
-                a.difference(DateTime.now() - 3.minutes).abs() <
-                        b.difference(DateTime.now()).abs()
-                    ? a
-                    : b);
-            _currentMasjidIndex = allList.indexOf(_currentMasjid);
-          });
-          // print(_currentMasjid.toString() + 'asd');
-          var duration =
-              (_currentMasjid.difference(DateTime.now())) + 3.minutes;
-          // print(duration.toString() + 'asd');
-          Future.delayed(duration, () {
-            setState(() {
-              loop = true;
-            });
-          });
-        } else {
-          // If the server did not return a 200 OK response,
-          // then throw an exception.
-          throw Exception('Failed to load album');
-        }
-      }
-
-      await getData();
+      // await getData();
       //   final newVersion = NewVersion(
       //     iOSId: 'com.google.Vespa',
       //     androidId: 'co.namaz.near.me',
@@ -230,11 +272,216 @@ class _HomePageState extends State<HomePage> {
   //     );
   //   }
   // }
+  locationDialog(context) {
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return SimpleDialog(
+              backgroundColor: Color(0xFF1E1E1E),
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+              alignment: Alignment.center,
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Location',
+                    style: TextStyle(
+                      color: Color(0xFF77B255),
+                    ),
+                  ),
+                ],
+              ),
+              children: <Widget>[
+                DropdownButton<String>(
+                  dropdownColor: Color(0xFF1E1E1E),
+                  style: TextStyle(color: Colors.white, fontSize: 14),
+                  isExpanded: true,
+                  items: _states.map((String dropDownStringItem) {
+                    return DropdownMenuItem<String>(
+                      value: dropDownStringItem,
+                      child: Text(dropDownStringItem),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedLGA = "Choose Area";
+                      _lgas = ["Choose Area"];
+                      _selectedState = value!;
+                      _lgas = List.from(_lgas)
+                        ..addAll(repo.getLocalByState(value, cities!));
+                    });
+                  },
+                  value: _selectedState,
+                ),
+                DropdownButton<String>(
+                  isExpanded: true,
+                  dropdownColor: Color(0xFF1E1E1E),
+                  style: TextStyle(color: Colors.white, fontSize: 14),
+                  items: _lgas.map((String dropDownStringItem) {
+                    return DropdownMenuItem<String>(
+                      value: dropDownStringItem,
+                      child: Text(
+                        dropDownStringItem,
+                        // style: TextStyle(color: Color(0xFF1E1E1E)),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() => _selectedLGA = value!);
+                  },
+                  value: _selectedLGA,
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    print(_selectedLGA);
+                    print(_selectedState);
+                    if (_selectedLGA == 'Choose Area') {
+                      return;
+                    }
+                    if (_selectedState == 'Choose City') {
+                      return;
+                    }
+
+                    sp!.setString(citySP, _selectedState);
+                    sp!.setString(areaSP, _selectedLGA);
+                    setState(
+                      () {
+                        city = _selectedState;
+                        area = _selectedLGA;
+                      },
+                    );
+                    bool isFav = sp!.getBool(favSP) ?? false;
+                    Get.back();
+                    if (!isFav) {
+                      wonderPushDialog(context);
+                    }
+                    getData();
+                  },
+                  child: Text('set location'),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF77B255),
+                      foregroundColor: Color(0xFF1E1E1E),
+                      fixedSize: Size(double.infinity, 40),
+                      shape: StadiumBorder()),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  wonderPushDialog(context) {
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return SimpleDialog(
+              backgroundColor: Color(0xFF1E1E1E),
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+              alignment: Alignment.center,
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Favourite Mosques',
+                    style: TextStyle(
+                      color: Color(0xFF77B255),
+                    ),
+                  ),
+                ],
+              ),
+              children: <Widget>[
+                SizedBox(
+                  height: 20,
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 15),
+                  child: Text(
+                    'Add Favourite Mosque to get Notification',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  height: 20,
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                          onPressed: () async {
+                            await WonderPush.addTag('$city');
+                            sp!.setBool(favSP, true);
+
+                            Get.back();
+                          },
+                          child: Text(
+                            'Add City',
+                            style: TextStyle(color: Color(0xFF77B255)),
+                          ),
+                          style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all<Color>(
+                                  Color(0xFF1E1E1E)),
+                              shape: MaterialStateProperty.all<
+                                      RoundedRectangleBorder>(
+                                  RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18.0),
+                                      side: BorderSide(
+                                          color: Color(0xFF77B255)))))),
+                    ),
+                    SizedBox(
+                      width: 10,
+                    ),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          await WonderPush.addTag('$city.$area');
+                          sp!.setBool(favSP, true);
+                          Get.back();
+                        },
+                        child: Text('Add City/Area'),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF77B255),
+                            foregroundColor: Color(0xFF1E1E1E),
+                            fixedSize: Size(double.infinity, 40),
+                            shape: StadiumBorder()),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     var _key = _namaz_timing['list'][0]['timing'].keys;
     return Scaffold(
+      // floatingActionButton: FloatingActionButton(onPressed: () {
+      //   sp!.clear();
+      // }),
       backgroundColor: Color(0xFF1E1E1E),
       body: ModalProgressHUD(
         opacity: 1,
@@ -270,17 +517,25 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.white,
                       size: responsiveHeight(25, context),
                     ),
-                    FadeInDown(
-                      child: Center(
-                        child: AutoSizeText(
-                          'Home',
-                          minFontSize: 5,
-                          maxLines: 1,
-                          style: GoogleFonts.inter(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: responsiveText(18, context),
-                              fontWeight: FontWeight.w500,
+                    GestureDetector(
+                      onTap: () {
+                        locationDialog(context);
+                        // sp!.clear();
+                      },
+                      child: FadeInDown(
+                        child: Center(
+                          child: AutoSizeText(
+                            area == null || city == null
+                                ? 'Select Location'
+                                : '$area, $city',
+                            minFontSize: 5,
+                            maxLines: 1,
+                            style: GoogleFonts.inter(
+                              textStyle: TextStyle(
+                                color: Colors.white,
+                                fontSize: responsiveText(18, context),
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),

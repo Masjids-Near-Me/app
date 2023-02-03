@@ -16,9 +16,11 @@ import 'package:namaz_timing/all_mosque.dart';
 import 'package:namaz_timing/main.dart';
 import 'package:namaz_timing/namaz_timing.dart';
 import 'package:namaz_timing/responsive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time/time.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
+import 'package:wonderpush_flutter/wonderpush_flutter.dart';
 
 import 'constants.dart';
 
@@ -101,12 +103,15 @@ class _SingleMosqueScreenState extends State<SingleMosqueScreen> {
   List _list = [];
   List _key = [];
   List _allList = [];
-
+  SharedPreferences? sp;
+  String? city;
   @override
   void initState() {
-    // TODO: implement initState
+    super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      sp = await SharedPreferences.getInstance();
+      city = sp!.getString(citySP);
       getData() async {
         var response = await http
             .get(Uri.parse('https://api.namaz.co.in/getMasjid/${widget.id}'));
@@ -160,7 +165,7 @@ class _SingleMosqueScreenState extends State<SingleMosqueScreen> {
         _reported = false;
       });
       var response = await http.get(Uri.parse(
-          'https://api.namaz.co.in/namaz/${_currentNamazName.toString()}'));
+          'https://api.namaz.co.in/v2/namaz/$city/${_currentNamazName.toString()}'));
 
       if (response.statusCode == 200) {
         // If the server did return a 200 OK response,
@@ -333,21 +338,24 @@ class _SingleMosqueScreenState extends State<SingleMosqueScreen> {
                                               width:
                                                   responsiveWidth(130, context),
                                               child: AutoSizeText(
-                                                TimeOfDay.fromDateTime(
-                                                      DateTime.parse(
-                                                          getTime['start']
-                                                              .toString()),
-                                                    )
-                                                        .format(context)
-                                                        .toString() +
-                                                    ' - ' +
-                                                    TimeOfDay.fromDateTime(
-                                                      DateTime.parse(
-                                                          getTime['end']
-                                                              .toString()),
-                                                    )
-                                                        .format(context)
-                                                        .toString(),
+                                                getTime['start'] == null ||
+                                                        getTime['end']
+                                                    ? ''
+                                                    : TimeOfDay.fromDateTime(
+                                                          DateTime.parse(
+                                                              getTime['start']
+                                                                  .toString()),
+                                                        )
+                                                            .format(context)
+                                                            .toString() +
+                                                        ' - ' +
+                                                        TimeOfDay.fromDateTime(
+                                                          DateTime.parse(
+                                                              getTime['end']
+                                                                  .toString()),
+                                                        )
+                                                            .format(context)
+                                                            .toString(),
                                                 minFontSize: 5,
                                                 maxLines: 1,
                                                 style: GoogleFonts.inter(
@@ -401,18 +409,21 @@ class _SingleMosqueScreenState extends State<SingleMosqueScreen> {
                           ),
                           Spacer(),
                           GestureDetector(
-                            onTap: () {
+                            onTap: () async {
                               if (getStorage.read('pinnedMasjid') != null) {
                                 if (getStorage
                                         .read('pinnedMasjid')['_id']
                                         .toString() ==
                                     _mosqueData['_id'].toString()) {
-                                  setState(() {
+                                  setState(() async {
                                     getStorage.remove('pinnedMasjid');
                                     Alarm.stop();
+                                    await WonderPush.removeTag('${widget.id}');
                                   });
                                 } else {
                                   setAlaram(_mosqueKeys);
+                                  await WonderPush.addTag('${widget.id}');
+
                                   setState(() {
                                     getStorage.write(
                                         'pinnedMasjid', _mosqueData);
@@ -420,6 +431,7 @@ class _SingleMosqueScreenState extends State<SingleMosqueScreen> {
                                 }
                               } else {
                                 setAlaram(_mosqueKeys);
+                                await WonderPush.addTag('${widget.id}');
 
                                 setState(() {
                                   getStorage.write('pinnedMasjid', _mosqueData);

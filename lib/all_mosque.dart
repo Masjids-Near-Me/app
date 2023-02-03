@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animator/flutter_animator.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
@@ -11,10 +12,14 @@ import 'package:namaz_timing/counter_home.dart';
 import 'package:namaz_timing/main.dart';
 import 'package:namaz_timing/responsive.dart';
 import 'package:namaz_timing/single_mosque_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
+import 'multi_level_dropdown.dart';
+import 'multiselect/repository.dart';
 import 'navbar.dart';
+import 'services.dart';
 
 class AllMosque extends StatefulWidget {
   const AllMosque({Key? key}) : super(key: key);
@@ -28,21 +33,139 @@ bool _showSpinner = true;
 dynamic _allMosque = {"Masjids": []};
 
 class _AllMosqueState extends State<AllMosque> {
-  Future<void> getData() async {
-    var response =
-        await http.get(Uri.parse('https://api.namaz.co.in/getMasjids'));
+  SharedPreferences? sp;
+  String? city;
+  String? area;
+  Repository repo = Repository();
+  List<String> _states = ["Choose City"];
+  List<String> _lgas = ["Choose Area"];
+  String _selectedState = "Choose City";
+  String _selectedLGA = "Choose Area";
+  List? cities;
+  bool isLoading = true;
 
+  locationDialog(context) {
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return SimpleDialog(
+              backgroundColor: Color(0xFF1E1E1E),
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+              alignment: Alignment.center,
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Location',
+                    style: TextStyle(
+                      color: Color(0xFF77B255),
+                    ),
+                  ),
+                ],
+              ),
+              children: <Widget>[
+                DropdownButton<String>(
+                  dropdownColor: Color(0xFF1E1E1E),
+                  style: TextStyle(color: Colors.white, fontSize: 14),
+                  isExpanded: true,
+                  items: _states.map((String dropDownStringItem) {
+                    return DropdownMenuItem<String>(
+                      value: dropDownStringItem,
+                      child: Text(dropDownStringItem),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedLGA = "Choose Area";
+                      _lgas = ["Choose Area"];
+                      _selectedState = value!;
+                      _lgas = List.from(_lgas)
+                        ..addAll(repo.getLocalByState(value, cities!));
+                    });
+                  },
+                  value: _selectedState,
+                ),
+                DropdownButton<String>(
+                  isExpanded: true,
+                  dropdownColor: Color(0xFF1E1E1E),
+                  style: TextStyle(color: Colors.white, fontSize: 14),
+                  items: _lgas.map((String dropDownStringItem) {
+                    return DropdownMenuItem<String>(
+                      value: dropDownStringItem,
+                      child: Text(
+                        dropDownStringItem,
+                        // style: TextStyle(color: Color(0xFF1E1E1E)),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() => _selectedLGA = value!);
+                  },
+                  value: _selectedLGA,
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    print(_selectedLGA);
+                    print(_selectedState);
+                    if (_selectedLGA == 'Choose Area') {
+                      return;
+                    }
+                    if (_selectedState == 'Choose City') {
+                      return;
+                    }
+
+                    sp!.setString(citySP, _selectedState);
+                    sp!.setString(areaSP, _selectedLGA);
+                    setState(
+                      () {
+                        city = _selectedState;
+                        area = _selectedLGA;
+                      },
+                    );
+                    Get.back();
+                    getData();
+                  },
+                  child: Text('set location'),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF77B255),
+                      foregroundColor: Color(0xFF1E1E1E),
+                      fixedSize: Size(double.infinity, 40),
+                      shape: StadiumBorder()),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  getData() async {
+    var response = await http
+        .get(Uri.parse('https://api.namaz.co.in/v2/getMasjids/$city/$area'));
+    setState(() {});
     if (response.statusCode == 200) {
       // If the server did return a 200 OK response,
       // then parse the JSON.
       setState(() {
         _allMosque = jsonDecode(response.body);
+        _showSpinner = false;
         masjidList = _allMosque['Masjids'];
         getStorage.read('pinnedMasjid') != null
             ? masjidList.removeWhere((element) =>
                 element['_id'] == getStorage.read('pinnedMasjid')['_id'])
             : null;
       });
+      print(masjidList);
       print(getStorage.read('pinnedMasjid'));
     } else {
       // If the server did not return a 200 OK response,
@@ -51,37 +174,39 @@ class _AllMosqueState extends State<AllMosque> {
     }
   }
 
+  getCityArea() {
+    Services.getCityArea().then((value) {
+      cities = [];
+      List list = value['data'];
+      for (var l in list) {
+        String city = getItem(l);
+        var map = {"state": city, "alias": city, "lgas": l[city]};
+        cities!.add(map);
+      }
+      _states = List.from(_states)..addAll(repo.getStates(cities!));
+      getSP();
+    });
+  }
+
+  getSP() async {
+    sp = await SharedPreferences.getInstance();
+    city = sp!.getString(citySP);
+    area = sp!.getString(areaSP);
+    setState(() {});
+    if (city == null && area == null) {
+      locationDialog(context);
+    } else {
+      getData();
+    }
+    setState(() {});
+  }
+
   @override
   void initState() {
-    // TODO: implement initState
+    super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      getData() async {
-        var response =
-            await http.get(Uri.parse('https://api.namaz.co.in/getMasjids'));
-
-        if (response.statusCode == 200) {
-          // If the server did return a 200 OK response,
-          // then parse the JSON.
-          setState(() {
-            _allMosque = jsonDecode(response.body);
-            _showSpinner = false;
-            masjidList = _allMosque['Masjids'];
-            getStorage.read('pinnedMasjid') != null
-                ? masjidList.removeWhere((element) =>
-                    element['_id'] == getStorage.read('pinnedMasjid')['_id'])
-                : null;
-          });
-          print(masjidList);
-          print(getStorage.read('pinnedMasjid'));
-        } else {
-          // If the server did not return a 200 OK response,
-          // then throw an exception.
-          throw Exception('Failed to load namaz');
-        }
-      }
-
-      await getData();
+      getCityArea();
     });
   }
 
@@ -118,9 +243,7 @@ class _AllMosqueState extends State<AllMosque> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     GestureDetector(
-                      onTap: () {
-
-                      },
+                      onTap: () {},
                       child: Icon(
                         Icons.timer_outlined,
                         color: Colors.white,
