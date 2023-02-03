@@ -29,6 +29,13 @@
             {
               "client_id": "224383467004-mai7t615iuv1u3i6m3maq4df20b841ba.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "224383467004-0bnmsevdd3jiq3nst7o1leus84tfumhi.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "co.namaz.near.me"
+              }
             }
           ]
         }
