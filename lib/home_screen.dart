@@ -15,7 +15,8 @@ import 'package:namaz_timing/namaz_timing.dart';
 import 'package:namaz_timing/responsive.dart';
 import 'package:namaz_timing/services.dart';
 import 'package:namaz_timing/update.dart';
-import 'package:new_version/new_version.dart';
+import 'package:new_version_plus/new_version_plus.dart';
+import 'package:new_version_plus/new_version_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:time/time.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -104,7 +105,7 @@ class _HomePageState extends State<HomePage> {
     if (response.statusCode != 200) {
       http
           .get(Uri.parse(
-              'https://api.telegram.org/bot5917352634:AAGQK_HUfAn9ViRZYpeLQX-H1IngSvkYdgU/sendMessage?chat_id=933725202&text="Error loaing message ${response.statusCode}"'))
+          'https://api.telegram.org/bot5917352634:AAGQK_HUfAn9ViRZYpeLQX-H1IngSvkYdgU/sendMessage?chat_id=933725202&text="Error loaing message ${response.statusCode}"'))
           .then((value) {
         return showAboutDialog(
           context: context,
@@ -153,10 +154,10 @@ class _HomePageState extends State<HomePage> {
 
       setState(() {
         _currentMasjid = list.reduce((a, b) =>
-            a.difference(DateTime.now() - 3.minutes).abs() <
-                    b.difference(DateTime.now()).abs()
-                ? a
-                : b);
+        a.difference(DateTime.now() - 3.minutes).abs() <
+            b.difference(DateTime.now()).abs()
+            ? a
+            : b);
         _currentMasjidIndex = allList.indexOf(_currentMasjid);
       });
       // print(_currentMasjid.toString() + 'asd');
@@ -207,8 +208,8 @@ class _HomePageState extends State<HomePage> {
     getCityArea();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final newVersion =
-          NewVersion(androidId: 'co.namaz.near.me', iOSId: 'co.namaz.near.me');
-      void checkNewVersion(NewVersion newVersion) async {
+      NewVersionPlus(androidId: 'co.namaz.near.me', iOSId: 'co.namaz.near.me');
+      void checkNewVersion(NewVersionPlus newVersion) async {
         final status = await newVersion.getVersionStatus();
         if (status != null) {
           if (status.canUpdate) {
@@ -255,7 +256,6 @@ class _HomePageState extends State<HomePage> {
   // basicStatusCheck(NewVersion newVersion) {
   //   newVersion.showAlertIfNecessary(context: context);
   // }
-
   // advancedStatusCheck(NewVersion newVersion) async {
   //   final status = await newVersion.getVersionStatus();
   //   if (status != null) {
@@ -338,7 +338,7 @@ class _HomePageState extends State<HomePage> {
                   height: 10,
                 ),
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     print(_selectedLGA);
                     print(_selectedState);
                     if (_selectedLGA == 'Choose Area') {
@@ -347,11 +347,13 @@ class _HomePageState extends State<HomePage> {
                     if (_selectedState == 'Choose City') {
                       return;
                     }
-
+                    String? oldCity, oldArea;
+                    oldCity = sp!.getString(citySP);
+                    oldArea = sp!.getString(areaSP);
                     sp!.setString(citySP, _selectedState);
                     sp!.setString(areaSP, _selectedLGA);
                     setState(
-                      () {
+                          () {
                         city = _selectedState;
                         area = _selectedLGA;
                       },
@@ -360,6 +362,18 @@ class _HomePageState extends State<HomePage> {
                     Get.back();
                     if (!isFav) {
                       wonderPushDialog(context);
+                    } else {
+                      bool isCityArea = sp!.getBool(isCityAreaSP) ?? false;
+                      var data = await WonderPush.getTags();
+                      print(data);
+
+                      if (isCityArea) {
+                        await WonderPush.removeTag('$oldCity.$oldArea');
+                        await WonderPush.addTag('$city.$area');
+                      } else {
+                        await WonderPush.removeTag(oldCity);
+                        await WonderPush.addTag(city);
+                      }
                     }
                     getData();
                   },
@@ -427,7 +441,7 @@ class _HomePageState extends State<HomePage> {
                           onPressed: () async {
                             await WonderPush.addTag('$city');
                             sp!.setBool(favSP, true);
-
+                            sp!.setBool(isCityAreaSP, false);
                             Get.back();
                           },
                           child: Text(
@@ -438,7 +452,7 @@ class _HomePageState extends State<HomePage> {
                               backgroundColor: MaterialStateProperty.all<Color>(
                                   Color(0xFF1E1E1E)),
                               shape: MaterialStateProperty.all<
-                                      RoundedRectangleBorder>(
+                                  RoundedRectangleBorder>(
                                   RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(18.0),
                                       side: BorderSide(
@@ -452,6 +466,7 @@ class _HomePageState extends State<HomePage> {
                         onPressed: () async {
                           await WonderPush.addTag('$city.$area');
                           sp!.setBool(favSP, true);
+                          sp!.setBool(isCityAreaSP, true);
                           Get.back();
                         },
                         child: Text('Add City/Area'),
@@ -478,277 +493,285 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     var _key = _namaz_timing['list'][0]['timing'].keys;
-    return Scaffold(
-      // floatingActionButton: FloatingActionButton(onPressed: () {
-      //   sp!.clear();
-      // }),
-      backgroundColor: Color(0xFF1E1E1E),
-      body: ModalProgressHUD(
-        opacity: 1,
-        inAsyncCall: _showSpiner,
-        child: Column(
-          children: [
-            Container(
-              height: responsiveHeight(100, context),
-              width: MediaQuery.of(context).size.width,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/tab_design.png'),
-                  fit: BoxFit.fill,
-                ),
-                color: Color(0xFF77B255),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(10),
-                  bottomRight: Radius.circular(10),
-                ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: responsiveHeight(55, context),
-                  left: responsiveWidth(15, context),
-                  right: responsiveWidth(15, context),
-                  bottom: responsiveHeight(18, context),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Icon(
-                      Icons.timer_outlined,
-                      color: Colors.white,
-                      size: responsiveHeight(25, context),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        locationDialog(context);
-                        // sp!.clear();
-                      },
-                      child: FadeInDown(
-                        child: Center(
-                          child: AutoSizeText(
-                            area == null || city == null
-                                ? 'Select Location'
-                                : '$area, $city',
-                            minFontSize: 5,
-                            maxLines: 1,
-                            style: GoogleFonts.inter(
-                              textStyle: TextStyle(
-                                color: Colors.white,
-                                fontSize: responsiveText(18, context),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      Icons.event,
-                      color: Colors.white,
-                      size: responsiveHeight(25, context),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(
-              height: responsiveHeight(11, context),
-            ),
-            FlipInY(
-              preferences: AnimationPreferences(
-                offset: Duration(seconds: 1),
-              ),
-              child: Container(
-                width: responsiveWidth(338, context),
-                height: responsiveHeight(129, context),
+    return SafeArea(
+      child: Scaffold(
+        // floatingActionButton: FloatingActionButton(onPressed: () async {
+        //   sp!.clear();
+        // }),
+        backgroundColor: Color(0xFF1E1E1E),
+        body: ModalProgressHUD(
+          opacity: 1,
+          inAsyncCall: _showSpiner,
+          child: Column(
+            children: [
+              Container(
+                height: responsiveHeight(100, context),
+                width: MediaQuery.of(context).size.width,
                 decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Colors.white,
+                  image: DecorationImage(
+                    image: AssetImage('assets/tab_design.png'),
+                    fit: BoxFit.fill,
                   ),
-                  color: black,
-                  borderRadius: BorderRadius.circular(15),
+                  color: Color(0xFF77B255),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(10),
+                    bottomRight: Radius.circular(10),
+                  ),
                 ),
                 child: Padding(
                   padding: EdgeInsets.only(
-                    left: responsiveWidth(25, context),
-                    top: responsiveHeight(18, context),
+                    top: responsiveHeight(55, context),
+                    left: responsiveWidth(15, context),
+                    right: responsiveWidth(15, context),
+                    bottom: responsiveHeight(18, context),
                   ),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: responsiveWidth(150, context),
+                      Icon(
+                        Icons.timer_outlined,
+                        color: Colors.white,
+                        size: responsiveHeight(25, context),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          locationDialog(context);
+                          // sp!.clear();
+                        },
+                        child: FadeInDown(
+                          child: Center(
                             child: AutoSizeText(
-                              _namaz_timing['list'][_currentMasjidIndex]['name']
-                                  .toString(),
+                              area == null || city == null
+                                  ? 'Select Location'
+                                  : '$area, $city',
                               minFontSize: 5,
                               maxLines: 1,
                               style: GoogleFonts.inter(
                                 textStyle: TextStyle(
                                   color: Colors.white,
-                                  fontSize: responsiveText(16, context),
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: responsiveText(18, context),
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ),
                           ),
-                          SizedBox(
-                            height: responsiveHeight(10, context),
-                          ),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.schedule,
-                                color: Color(0xFF77B255),
-                                size: responsiveText(64, context),
-                              ),
-                              SizedBox(
-                                width: responsiveWidth(15, context),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: responsiveWidth(80, context),
-                                    child: AutoSizeText(
-                                      _namaz_timing['list'][0]['timing']
-                                              .keys
-                                              .first
-                                              .toString() +
-                                          ' Prayer',
-                                      minFontSize: 5,
-                                      maxLines: 1,
-                                      style: GoogleFonts.inter(
-                                        textStyle: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: responsiveText(10, context),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: responsiveWidth(150, context),
-                                    child: AutoSizeText(
-                                      TimeOfDay.fromDateTime(
-                                        DateTime.parse(
-                                          _namaz_timing['list']
-                                                          [_currentMasjidIndex]
-                                                      ['timing']
-                                                  [_key.first.toString()]
-                                              ['jammat_time'],
-                                        ),
-                                      ).format(context).toString(),
-                                      minFontSize: 5,
-                                      maxLines: 1,
-                                      style: GoogleFonts.inter(
-                                        textStyle: TextStyle(
-                                          color: Color(0xFF77B255),
-                                          fontSize: responsiveText(24, context),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: responsiveWidth(150, context),
-                                    child: AutoSizeText(
-                                      'From ' +
-                                          TimeOfDay.fromDateTime(
-                                            DateTime.parse(
-                                                _namaz_timing['time']['start']),
-                                          ).format(context).toString() +
-                                          '- ' +
-                                          TimeOfDay.fromDateTime(
-                                            DateTime.parse(
-                                                _namaz_timing['time']['end']),
-                                          ).format(context).toString(),
-                                      minFontSize: 5,
-                                      maxLines: 1,
-                                      style: GoogleFonts.inter(
-                                        textStyle: TextStyle(
-                                          color: Color(0xFFA3A3A3),
-                                          fontSize: responsiveText(10, context),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            ],
-                          )
-                        ],
+                        ),
                       ),
-                      Spacer(),
-                      Image.asset(
-                        'assets/castle.png',
-                        width: responsiveWidth(52, context),
-                        height: responsiveHeight(104, context),
-                      ),
-                      SizedBox(
-                        width: responsiveWidth(26, context),
+                      Icon(
+                        Icons.event,
+                        color: Colors.white,
+                        size: responsiveHeight(25, context),
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
-            SizedBox(
-              height: responsiveHeight(11, context),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: getData,
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  shrinkWrap: true,
-                  children: [
-                    Column(
+              SizedBox(
+                height: responsiveHeight(11, context),
+              ),
+              FlipInY(
+                preferences: AnimationPreferences(
+                  offset: Duration(seconds: 1),
+                ),
+                child: Container(
+                  width: responsiveWidth(338, context),
+                  height: responsiveHeight(129, context),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.white,
+                    ),
+                    color: black,
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: responsiveWidth(25, context),
+                      top: responsiveHeight(18, context),
+                    ),
+                    child: Row(
                       children: [
-                        for (var namaz in _namaz_timing['list'])
-                          NamazCard(
-                            image: namaz['img'],
-                            masjidName: namaz['name'],
-                            timing: namaz['timing'],
-                          ),
-                        GestureDetector(
-                          onTap: () async {
-                            if (await canLaunchUrlString(
-                                'https://api.whatsapp.com/send?phone=918200440994&text=Helllo%20I%20would%20like%20to%20add%20my%20masjid')) {
-                              await launchUrlString(
-                                'https://api.whatsapp.com/send?phone=918200440994&text=Helllo%20I%20would%20like%20to%20add%20my%20masjid',
-                                mode: LaunchMode.externalApplication,
-                              );
-                            } else {
-                              throw 'Could not launch Whatsapp';
-                            }
-                          },
-                          child: SizedBox(
-                            width: responsiveWidth(150, context),
-                            child: AutoSizeText(
-                              'Unable to find your masjid ?',
-                              minFontSize: 5,
-                              maxLines: 1,
-                              style: GoogleFonts.inter(
-                                textStyle: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: responsiveText(16, context),
-                                  fontWeight: FontWeight.w600,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: responsiveWidth(150, context),
+                              child: AutoSizeText(
+                                _namaz_timing['list'].length > _currentMasjidIndex
+                                    ? _namaz_timing['list'][_currentMasjidIndex]
+                                ['name']
+                                    .toString()
+                                    : '',
+                                minFontSize: 5,
+                                maxLines: 1,
+                                style: GoogleFonts.inter(
+                                  textStyle: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: responsiveText(16, context),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(
+                              height: responsiveHeight(10, context),
+                            ),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.schedule,
+                                  color: Color(0xFF77B255),
+                                  size: responsiveText(64, context),
+                                ),
+                                SizedBox(
+                                  width: responsiveWidth(15, context),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      width: responsiveWidth(80, context),
+                                      child: AutoSizeText(
+                                        _namaz_timing['list'][0]['timing']
+                                            .keys
+                                            .first
+                                            .toString() +
+                                            ' Prayer',
+                                        minFontSize: 5,
+                                        maxLines: 1,
+                                        style: GoogleFonts.inter(
+                                          textStyle: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: responsiveText(10, context),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: responsiveWidth(150, context),
+                                      child: AutoSizeText(
+                                        _namaz_timing['list'].length >
+                                            _currentMasjidIndex
+                                            ? TimeOfDay.fromDateTime(
+                                          DateTime.parse(
+                                            _namaz_timing['list'][
+                                            _currentMasjidIndex]
+                                            ['timing']
+                                            [_key.first.toString()]
+                                            ['jammat_time'],
+                                          ),
+                                        ).format(context).toString()
+                                            : '',
+                                        minFontSize: 5,
+                                        maxLines: 1,
+                                        style: GoogleFonts.inter(
+                                          textStyle: TextStyle(
+                                            color: Color(0xFF77B255),
+                                            fontSize: responsiveText(24, context),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: responsiveWidth(150, context),
+                                      child: AutoSizeText(
+                                        'From ' +
+                                            TimeOfDay.fromDateTime(
+                                              DateTime.parse(
+                                                  _namaz_timing['time']['start']),
+                                            ).format(context).toString() +
+                                            '- ' +
+                                            TimeOfDay.fromDateTime(
+                                              DateTime.parse(
+                                                  _namaz_timing['time']['end']),
+                                            ).format(context).toString(),
+                                        minFontSize: 5,
+                                        maxLines: 1,
+                                        style: GoogleFonts.inter(
+                                          textStyle: TextStyle(
+                                            color: Color(0xFFA3A3A3),
+                                            fontSize: responsiveText(10, context),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              ],
+                            )
+                          ],
+                        ),
+                        Spacer(),
+                        Image.asset(
+                          'assets/castle.png',
+                          width: responsiveWidth(52, context),
+                          height: responsiveHeight(104, context),
+                        ),
+                        SizedBox(
+                          width: responsiveWidth(26, context),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(
+                height: responsiveHeight(11, context),
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: getData,
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    children: [
+                      Column(
+                        children: [
+                          for (var namaz in _namaz_timing['list'])
+                            NamazCard(
+                              image: namaz['img'],
+                              masjidName: namaz['name'],
+                              timing: namaz['timing'],
+                            ),
+                          GestureDetector(
+                            onTap: () async {
+                              if (await canLaunchUrlString(
+                                  'https://api.whatsapp.com/send?phone=918200440994&text=Helllo%20I%20would%20like%20to%20add%20my%20masjid')) {
+                                await launchUrlString(
+                                  'https://api.whatsapp.com/send?phone=918200440994&text=Helllo%20I%20would%20like%20to%20add%20my%20masjid',
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              } else {
+                                throw 'Could not launch Whatsapp';
+                              }
+                            },
+                            child: SizedBox(
+                              width: responsiveWidth(150, context),
+                              child: AutoSizeText(
+                                'Unable to find your masjid ?',
+                                minFontSize: 5,
+                                maxLines: 1,
+                                style: GoogleFonts.inter(
+                                  textStyle: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: responsiveText(16, context),
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            NavBar(
-              currentPage: 'Home',
-            ),
-          ],
+              NavBar(
+                currentPage: 'Home',
+              ),
+            ],
+          ),
         ),
       ),
     );

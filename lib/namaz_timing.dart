@@ -252,165 +252,167 @@ class _NamazTimingScreenState extends State<NamazTimingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFF1E1E1E),
-      body:
-          // isLoading
-          //     ? Center(
-          //         child: CircularProgressIndicator(),
-          //       )
-          //     : city == null || area == null
-          //         ? Center(
-          //             child: Column(
-          //               mainAxisAlignment: MainAxisAlignment.center,
-          //               children: [
-          //                 Text(
-          //                   'Select location',
-          //                   style: TextStyle(color: Colors.white, fontSize: 20),
-          //                 ),
-          //                 SizedBox(
-          //                   height: 20,
-          //                 ),
-          //                 ElevatedButton(
-          //                   onPressed: () {
-          //                     locationDialog(context);
-          //                   },
-          //                   child: Text('set location'),
-          //                   style: ElevatedButton.styleFrom(
-          //                       backgroundColor: Color(0xFF77B255),
-          //                       foregroundColor: Color(0xFF1E1E1E),
-          //                       fixedSize: Size(double.infinity, 40),
-          //                       shape: StadiumBorder()),
-          //                 ),
-          //               ],
-          //             ),
-          //           )
-          //         :
-          ModalProgressHUD(
-        inAsyncCall: _showSpiner,
-        child: Column(
-          children: [
-            Container(
-              height: responsiveHeight(100, context),
-              width: MediaQuery.of(context).size.width,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/tab_design.png'),
-                  fit: BoxFit.fill,
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: Color(0xFF1E1E1E),
+        body:
+            // isLoading
+            //     ? Center(
+            //         child: CircularProgressIndicator(),
+            //       )
+            //     : city == null || area == null
+            //         ? Center(
+            //             child: Column(
+            //               mainAxisAlignment: MainAxisAlignment.center,
+            //               children: [
+            //                 Text(
+            //                   'Select location',
+            //                   style: TextStyle(color: Colors.white, fontSize: 20),
+            //                 ),
+            //                 SizedBox(
+            //                   height: 20,
+            //                 ),
+            //                 ElevatedButton(
+            //                   onPressed: () {
+            //                     locationDialog(context);
+            //                   },
+            //                   child: Text('set location'),
+            //                   style: ElevatedButton.styleFrom(
+            //                       backgroundColor: Color(0xFF77B255),
+            //                       foregroundColor: Color(0xFF1E1E1E),
+            //                       fixedSize: Size(double.infinity, 40),
+            //                       shape: StadiumBorder()),
+            //                 ),
+            //               ],
+            //             ),
+            //           )
+            //         :
+            ModalProgressHUD(
+          inAsyncCall: _showSpiner,
+          child: Column(
+            children: [
+              Container(
+                height: responsiveHeight(100, context),
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/tab_design.png'),
+                    fit: BoxFit.fill,
+                  ),
+                  color: Color(0xFF77B255),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(10),
+                    bottomRight: Radius.circular(10),
+                  ),
                 ),
-                color: Color(0xFF77B255),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(10),
-                  bottomRight: Radius.circular(10),
-                ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: responsiveHeight(55, context),
-                  left: responsiveWidth(15, context),
-                  right: responsiveWidth(15, context),
-                  bottom: responsiveHeight(18, context),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Icon(
-                      Icons.timer_outlined,
-                      color: Colors.white,
-                      size: responsiveHeight(25, context),
-                    ),
-                    FadeInDown(
-                      child: Center(
-                        child: AutoSizeText(
-                          'Namaz Timing',
-                          maxLines: 1,
-                          style: GoogleFonts.inter(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: responsiveText(18, context),
-                              fontWeight: FontWeight.w500,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: responsiveHeight(55, context),
+                    left: responsiveWidth(15, context),
+                    right: responsiveWidth(15, context),
+                    bottom: responsiveHeight(18, context),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Icon(
+                        Icons.timer_outlined,
+                        color: Colors.white,
+                        size: responsiveHeight(25, context),
+                      ),
+                      FadeInDown(
+                        child: Center(
+                          child: AutoSizeText(
+                            'Namaz Timing',
+                            maxLines: 1,
+                            style: GoogleFonts.inter(
+                              textStyle: TextStyle(
+                                color: Colors.white,
+                                fontSize: responsiveText(18, context),
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    Icon(
-                      Icons.event,
-                      color: Colors.white,
-                      size: responsiveHeight(25, context),
-                    ),
-                  ],
+                      Icon(
+                        Icons.event,
+                        color: Colors.white,
+                        size: responsiveHeight(25, context),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () => getData(),
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  shrinkWrap: true,
-                  children: [
-                    Column(
-                      children: [
-                        SizedBox(
-                          height: responsiveHeight(20, context),
-                        ),
-                        SizedBox(
-                          width: responsiveWidth(200, context),
-                          child: Center(
-                            child: AutoSizeText(
-                              'Know The Namaz Timing',
-                              maxLines: 1,
-                              style: GoogleFonts.inter(
-                                textStyle: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: responsiveText(16, context),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () => getData(),
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    children: [
+                      Column(
+                        children: [
+                          SizedBox(
+                            height: responsiveHeight(20, context),
+                          ),
+                          SizedBox(
+                            width: responsiveWidth(200, context),
+                            child: Center(
+                              child: AutoSizeText(
+                                'Know The Namaz Timing',
+                                maxLines: 1,
+                                style: GoogleFonts.inter(
+                                  textStyle: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: responsiveText(16, context),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        SizedBox(
-                          height: responsiveHeight(20, context),
-                        ),
-                        GridView.count(
-                          physics: ScrollPhysics(),
-                          padding: EdgeInsets.only(
-                            left: responsiveWidth(16.5, context),
-                            right: responsiveWidth(16.5, context),
+                          SizedBox(
+                            height: responsiveHeight(20, context),
                           ),
-                          crossAxisSpacing: responsiveWidth(12, context),
-                          crossAxisCount: 2,
-                          shrinkWrap: true,
-                          children: [
-                            for (var namaz in namaz_timing['timing']!)
-                              NamazTimingCard(
-                                name: namaz['name'].toString().toUpperCase(),
-                                time: TimeOfDay.fromDateTime(
-                                      DateTime.parse(
-                                        namaz["start"]!,
-                                      ),
-                                    ).format(context).toString() +
-                                    ' - ' +
-                                    TimeOfDay.fromDateTime(
-                                      DateTime.parse(
-                                        namaz["end"]!,
-                                      ),
-                                    ).format(context).toString(),
-                              ),
-                          ],
-                        ),
-                      ],
-                    )
-                  ],
+                          GridView.count(
+                            physics: ScrollPhysics(),
+                            padding: EdgeInsets.only(
+                              left: responsiveWidth(16.5, context),
+                              right: responsiveWidth(16.5, context),
+                            ),
+                            crossAxisSpacing: responsiveWidth(12, context),
+                            crossAxisCount: 2,
+                            shrinkWrap: true,
+                            children: [
+                              for (var namaz in namaz_timing['timing']!)
+                                NamazTimingCard(
+                                  name: namaz['name'].toString().toUpperCase(),
+                                  time: TimeOfDay.fromDateTime(
+                                        DateTime.parse(
+                                          namaz["start"]!,
+                                        ),
+                                      ).format(context).toString() +
+                                      ' - ' +
+                                      TimeOfDay.fromDateTime(
+                                        DateTime.parse(
+                                          namaz["end"]!,
+                                        ),
+                                      ).format(context).toString(),
+                                ),
+                            ],
+                          ),
+                        ],
+                      )
+                    ],
+                  ),
                 ),
               ),
-            ),
-            NavBar(
-              currentPage: 'Timing',
-            ),
-          ],
+              NavBar(
+                currentPage: 'Timing',
+              ),
+            ],
+          ),
         ),
       ),
     );

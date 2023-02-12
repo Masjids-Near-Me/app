@@ -212,158 +212,160 @@ class _AllMosqueState extends State<AllMosque> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Color(0xFF1E1E1E),
-      body: ModalProgressHUD(
-        inAsyncCall: _showSpinner,
-        child: Column(
-          children: [
-            Container(
-              height: responsiveHeight(100, context),
-              width: MediaQuery.of(context).size.width,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/tab_design.png'),
-                  fit: BoxFit.fill,
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: Color(0xFF1E1E1E),
+        body: ModalProgressHUD(
+          inAsyncCall: _showSpinner,
+          child: Column(
+            children: [
+              Container(
+                height: responsiveHeight(100, context),
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/tab_design.png'),
+                    fit: BoxFit.fill,
+                  ),
+                  color: Color(0xFF77B255),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(10),
+                    bottomRight: Radius.circular(10),
+                  ),
                 ),
-                color: Color(0xFF77B255),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(10),
-                  bottomRight: Radius.circular(10),
-                ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.only(
-                  top: responsiveHeight(55, context),
-                  left: responsiveWidth(15, context),
-                  right: responsiveWidth(15, context),
-                  bottom: responsiveHeight(18, context),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () {},
-                      child: Icon(
-                        Icons.timer_outlined,
-                        color: Colors.white,
-                        size: responsiveHeight(25, context),
-                      ),
-                    ),
-                    FadeInDown(
-                      child: Center(
-                        child: AutoSizeText(
-                          'All Mosques',
-                          minFontSize: 5,
-                          maxLines: 1,
-                          style: GoogleFonts.inter(
-                            textStyle: TextStyle(
-                              color: Colors.white,
-                              fontSize: responsiveText(18, context),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    top: responsiveHeight(55, context),
+                    left: responsiveWidth(15, context),
+                    right: responsiveWidth(15, context),
+                    bottom: responsiveHeight(18, context),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () {},
+                        child: Icon(
+                          Icons.timer_outlined,
+                          color: Colors.white,
+                          size: responsiveHeight(25, context),
                         ),
                       ),
-                    ),
-                    Icon(
-                      Icons.event,
-                      color: Colors.white,
-                      size: responsiveHeight(25, context),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () => getData(),
-                child: ListView(
-                  padding: EdgeInsets.zero,
-                  shrinkWrap: true,
-                  children: [
-                    Column(
-                      children: [
-                        SizedBox(
-                          height: responsiveHeight(11, context),
-                        ),
-                        // MosqueCard(
-                        //   image: _allMosque['Masjids'][_allMosque['Masjids']
-                        //       .indexOf(
-                        //           getStorage.read('pinnedMasjid'))]!['img'],
-                        //   masjidName: _allMosque['Masjids'][
-                        //       _allMosque['Masjids'].indexOf(
-                        //           getStorage.read('pinnedMasjid'))]!['name'],
-                        //   directions: _allMosque['Masjids'][
-                        //       _allMosque['Masjids'].indexOf(getStorage
-                        //           .read('pinnedMasjid'))]!['map_link'],
-                        //   id: _allMosque['Masjids'][_allMosque['Masjids']
-                        //       .indexOf(
-                        //           getStorage.read('pinnedMasjid'))]!['_id'],
-                        // ),
-                        getStorage.read('pinnedMasjid') != null
-                            ? MosqueCard(
-                                image: getStorage
-                                    .read('pinnedMasjid')['img']
-                                    .toString(),
-                                masjidName: getStorage
-                                    .read('pinnedMasjid')['name']
-                                    .toString(),
-                                directions: getStorage
-                                    .read('pinnedMasjid')['map_link']
-                                    .toString(),
-                                id: getStorage
-                                    .read('pinnedMasjid')['_id']
-                                    .toString(),
-                              )
-                            : SizedBox(),
-                        for (var mosque in masjidList)
-                          MosqueCard(
-                            image: mosque['img'],
-                            masjidName: mosque['name'],
-                            directions: mosque['map_link'],
-                            id: mosque['_id'],
-                          ),
-                        GestureDetector(
-                          onTap: () async {
-                            if (await canLaunchUrlString(
-                                'https://api.whatsapp.com/send?phone=918200440994&text=Helllo%20I%20would%20like%20to%20add%20my%20masjid')) {
-                              await launchUrlString(
-                                'https://api.whatsapp.com/send?phone=918200440994&text=Helllo%20I%20would%20like%20to%20add%20my%20masjid',
-                                mode: LaunchMode.externalApplication,
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text("An Error Occured")));
-                              ;
-                            }
-                          },
-                          child: SizedBox(
-                            width: responsiveWidth(150, context),
-                            child: AutoSizeText(
-                              'Unable to find your masjid ?',
-                              minFontSize: 5,
-                              maxLines: 1,
-                              style: GoogleFonts.inter(
-                                textStyle: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: responsiveText(16, context),
-                                  fontWeight: FontWeight.w600,
-                                ),
+                      FadeInDown(
+                        child: Center(
+                          child: AutoSizeText(
+                            'All Mosques',
+                            minFontSize: 5,
+                            maxLines: 1,
+                            style: GoogleFonts.inter(
+                              textStyle: TextStyle(
+                                color: Colors.white,
+                                fontSize: responsiveText(18, context),
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      Icon(
+                        Icons.event,
+                        color: Colors.white,
+                        size: responsiveHeight(25, context),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            NavBar(
-              currentPage: 'Mosque',
-            ),
-          ],
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () => getData(),
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    children: [
+                      Column(
+                        children: [
+                          SizedBox(
+                            height: responsiveHeight(11, context),
+                          ),
+                          // MosqueCard(
+                          //   image: _allMosque['Masjids'][_allMosque['Masjids']
+                          //       .indexOf(
+                          //           getStorage.read('pinnedMasjid'))]!['img'],
+                          //   masjidName: _allMosque['Masjids'][
+                          //       _allMosque['Masjids'].indexOf(
+                          //           getStorage.read('pinnedMasjid'))]!['name'],
+                          //   directions: _allMosque['Masjids'][
+                          //       _allMosque['Masjids'].indexOf(getStorage
+                          //           .read('pinnedMasjid'))]!['map_link'],
+                          //   id: _allMosque['Masjids'][_allMosque['Masjids']
+                          //       .indexOf(
+                          //           getStorage.read('pinnedMasjid'))]!['_id'],
+                          // ),
+                          getStorage.read('pinnedMasjid') != null
+                              ? MosqueCard(
+                                  image: getStorage
+                                      .read('pinnedMasjid')['img']
+                                      .toString(),
+                                  masjidName: getStorage
+                                      .read('pinnedMasjid')['name']
+                                      .toString(),
+                                  directions: getStorage
+                                      .read('pinnedMasjid')['map_link']
+                                      .toString(),
+                                  id: getStorage
+                                      .read('pinnedMasjid')['_id']
+                                      .toString(),
+                                )
+                              : SizedBox(),
+                          for (var mosque in masjidList)
+                            MosqueCard(
+                              image: mosque['img'],
+                              masjidName: mosque['name'],
+                              directions: mosque['map_link'],
+                              id: mosque['_id'],
+                            ),
+                          GestureDetector(
+                            onTap: () async {
+                              if (await canLaunchUrlString(
+                                  'https://api.whatsapp.com/send?phone=918200440994&text=Helllo%20I%20would%20like%20to%20add%20my%20masjid')) {
+                                await launchUrlString(
+                                  'https://api.whatsapp.com/send?phone=918200440994&text=Helllo%20I%20would%20like%20to%20add%20my%20masjid',
+                                  mode: LaunchMode.externalApplication,
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text("An Error Occured")));
+                                ;
+                              }
+                            },
+                            child: SizedBox(
+                              width: responsiveWidth(150, context),
+                              child: AutoSizeText(
+                                'Unable to find your masjid ?',
+                                minFontSize: 5,
+                                maxLines: 1,
+                                style: GoogleFonts.inter(
+                                  textStyle: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: responsiveText(16, context),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              NavBar(
+                currentPage: 'Mosque',
+              ),
+            ],
+          ),
         ),
       ),
     );

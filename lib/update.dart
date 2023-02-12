@@ -172,7 +172,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                         Expanded(
                           child: GestureDetector(
                             onTap: () async {
-                              await launchUrl(Uri.parse(widget.appLink));
+                              await launchUrl(Uri.parse(widget.appLink),mode: LaunchMode.externalApplication);
                             },
                             child: Container(
                               height: 30,

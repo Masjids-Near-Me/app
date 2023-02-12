@@ -10,7 +10,7 @@ import firebase_core
 import flutter_local_notifications
 import just_audio
 import modal_progress_hud_nsn
-import package_info_plus_macos
+import package_info_plus
 import path_provider_foundation
 import shared_preferences_foundation
 import url_launcher_macos
